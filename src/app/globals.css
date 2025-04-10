@@ -1,6 +1,14 @@
+@import url('./login/login.css');
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --purple500: #242038;
+  --purple250: #725AC1;
+  --purple125: #8D86C9;
+  --purple50: #CAC4CE;
+  --white: #F7ECE1;
+
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,4 +47,28 @@ a {
   html {
     color-scheme: dark;
   }
+}
+
+main{
+  background-image: url('../../public/bg-login.jpg');
+  height: 100vh;
+  width: 100vw;
+  background-size: cover;
+  display: flex;
+}
+
+.primary-cta{
+  background-color: var(--purple250);
+  border-radius: 8px;
+  border: none;
+  color: var(--white);
+  max-height: 32px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.primary-cta:hover{
+  background-color: var(--white);
+  color: var(--purple250);
 }
