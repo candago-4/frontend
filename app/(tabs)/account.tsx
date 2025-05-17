@@ -3,7 +3,7 @@ import { TabBarIcon } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import * as Clipboard from 'expo-clipboard';
 import React from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 
 export default function AccountScreen() {
   const { user, signOut, isLoading } = useAuth();
@@ -15,26 +15,35 @@ export default function AccountScreen() {
   const handleLogout = () => {
     if (isLoading) return;
 
-    Alert.alert(
-      "Logout Confirmation",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Yes, Logout",
-          style: "destructive",
-          onPress: () => {
-            signOut().catch((error) => {
-              console.error('Logout error:', error);
-              Alert.alert("Error", "Failed to logout. Please try again.");
-            });
+    if (Platform.OS === 'web') {
+      if (window.confirm("Are you sure you want to logout?")) {
+        signOut().catch((error) => {
+          console.error('Logout error:', error);
+          window.alert("Failed to logout. Please try again.");
+        });
+      }
+    } else {
+      Alert.alert(
+        "Logout Confirmation",
+        "Are you sure you want to logout?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Yes, Logout",
+            style: "destructive",
+            onPress: () => {
+              signOut().catch((error) => {
+                console.error('Logout error:', error);
+                Alert.alert("Error", "Failed to logout. Please try again.");
+              });
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const renderField = (label: string, value: string, isMasked: boolean = false) => (
@@ -65,7 +74,6 @@ export default function AccountScreen() {
             {renderField('Nome', user.name)}
             {renderField('Email', user.email)}
             {renderField('Senha', 'your-password-here', true)}
-            {renderField('Organização', user.organization)}
           </>
         ) : (
           <View style={styles.loadingContainer}>

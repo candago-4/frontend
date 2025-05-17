@@ -49,7 +49,6 @@ export default function HomeScreen() {
     console.log('Export pressed');
   };
 
-
   return (
     <View style={styles.container}>
       <Container style={styles.content}>
@@ -113,9 +112,7 @@ export default function HomeScreen() {
           >
             <Text style={styles.exportText}>Export</Text>
           </Pressable>
-          
 
-          
           <Text style={styles.version}>Version 1.0</Text>
         </View>
       </Container>

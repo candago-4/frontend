@@ -9,23 +9,25 @@ interface User {
   role: string;
 }
 
-interface AuthContextType {
-  user: User | null;
+export type AuthContextType = {
+  isAuthenticated: boolean;
   isLoading: boolean;
   isInitialized: boolean;
+  user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-}
+};
 
-const API_URL = 'http://192.168.0.227:3001'; // Your local IP address
+const API_URL = 'http://192.168.0.227:3001'; 
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   // Check for existing token on startup
   useEffect(() => {
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await response.json();
             setUser(data.user);
             router.replace('/(tabs)/home');
+            setIsAuthenticated(true);
           } else {
             // If token is invalid, remove it
             await AsyncStorage.removeItem('token');
@@ -63,9 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: {
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userWithoutPassword);
       
       router.replace('/(tabs)/home');
+      setIsAuthenticated(true);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -100,9 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (name: string, email: string, password: string) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
       const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: {
@@ -133,9 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
       // Clear the stored token
       await AsyncStorage.removeItem('token');
       
@@ -144,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Navigate to login
       router.replace('/');
+      setIsAuthenticated(false);
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -158,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isInitialized, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, isInitialized, user, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

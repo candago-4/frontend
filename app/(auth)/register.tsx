@@ -1,4 +1,3 @@
-
 import { Container } from '@/components/ui/Container';
 import { AnimatedText } from '@/components/ui/AnimatedText';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { Layout } from 'react-native-reanimated';
 
+
 type InputStyle = TextStyle & ViewStyle;
 
 type Styles = {
@@ -40,12 +40,12 @@ type Styles = {
   inputError: ViewStyle;
   errorContainer: ViewStyle;
   errorText: TextStyle;
-  registerLink: TextStyle;
+  loginLink: TextStyle;
   disabledLink: ViewStyle;
-  loginButton: ViewStyle;
-  loginButtonPressed: ViewStyle;
-  loginButtonDisabled: ViewStyle;
-  loginButtonText: TextStyle;
+  registerButton: ViewStyle;
+  registerButtonPressed: ViewStyle;
+  registerButtonDisabled: ViewStyle;
+  registerButtonText: TextStyle;
   version: TextStyle;
   swipeIndicator: ViewStyle;
   swipeIndicatorText: TextStyle;
@@ -53,15 +53,28 @@ type Styles = {
 
 const getWebHeight = (): DimensionValue => '100%';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const { signIn, isLoading } = useAuth();
+  const { signUp, isLoading } = useAuth();
+
 
   const validateForm = () => {
-    if (!email || !password) {
+    if (!name || !email || !password || !confirmPassword) {
       setError('Por favor, preencha todos os campos');
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem');
+      return false;
+    }
+
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres');
       return false;
     }
 
@@ -74,16 +87,16 @@ export default function LoginScreen() {
     return true;
   };
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     if (!validateForm()) return;
 
     try {
-      await signIn(email, password);
+      await signUp(name, email, password);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Erro ao fazer login. Por favor, tente novamente.');
+        setError('Erro ao criar conta. Por favor, tente novamente.');
       }
     }
   };
@@ -96,7 +109,7 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={Platform.OS === 'web'}
         >
           <Image
-            source={require('../assets/images/bg.jpg')}
+            source={require('../../assets/images/bg.jpg')}
             style={styles.backgroundImage}
           />
           
@@ -104,7 +117,7 @@ export default function LoginScreen() {
             <View style={styles.innerContent}>
                 <View style={styles.logoContainer}>
                   <Image
-                    source={require('../assets/images/Globe.png')}
+                    source={require('../../assets/images/Globe.png')}
                     style={styles.logo}
                   />
                   <AnimatedText delay={500} style={styles.logoText}>
@@ -112,7 +125,21 @@ export default function LoginScreen() {
                   </AnimatedText>
                 </View>
 
-                <AnimatedText delay={200} style={styles.label}>Email</AnimatedText>
+                <AnimatedText delay={200} style={styles.label}>Nome</AnimatedText>
+                <TextInput
+                  style={[styles.input, error && name === '' && styles.inputError] as InputStyle[]}
+                  value={name}
+                  onChangeText={(text) => {
+                    setName(text);
+                    setError('');
+                  }}
+                  placeholder="Nome completo"
+                  placeholderTextColor="rgba(247, 236, 225, 0.5)"
+                  autoCapitalize="words"
+                  editable={!isLoading}
+                />
+
+                <AnimatedText delay={300} style={styles.label}>Email</AnimatedText>
                 <TextInput
                   style={[styles.input, error && email === '' && styles.inputError] as InputStyle[]}
                   value={email}
@@ -127,7 +154,7 @@ export default function LoginScreen() {
                   editable={!isLoading}
                 />
 
-                <AnimatedText delay={300} style={styles.label}>Senha</AnimatedText>
+                <AnimatedText delay={400} style={styles.label}>Senha</AnimatedText>
                 <TextInput
                   style={[styles.input, error && password === '' && styles.inputError] as InputStyle[]}
                   value={password}
@@ -141,31 +168,46 @@ export default function LoginScreen() {
                   editable={!isLoading}
                 />
 
+                <AnimatedText delay={500} style={styles.label}>Confirmar Senha</AnimatedText>
+                <TextInput
+                  style={[styles.input, error && confirmPassword === '' && styles.inputError] as InputStyle[]}
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    setError('');
+                  }}
+                  placeholder="Confirmar senha"
+                  placeholderTextColor="rgba(247, 236, 225, 0.5)"
+                  secureTextEntry
+                  editable={!isLoading}
+                />
                 {error ? (
-                    <Text style={styles.errorText}>{error}</Text>
+                  <Text style={styles.errorText}>{error}</Text>
                 ) : null}
 
-                <Link href="/register" style={[styles.registerLink, isLoading && styles.disabledLink] as TextStyle[]}>
-                  Não tem uma conta? Cadastre-se
-                </Link>
+                  <Link href="/" style={[styles.loginLink, isLoading && styles.disabledLink] as TextStyle[]}>
+                    Já tem uma conta? Faça login
+                  </Link>
 
-                <Pressable
+                  <Pressable
                     style={({ pressed }) => [
-                      styles.loginButton,
-                      pressed && styles.loginButtonPressed,
-                      isLoading && styles.loginButtonDisabled
+                      styles.registerButton,
+                      pressed && styles.registerButtonPressed,
+                      isLoading && styles.registerButtonDisabled
                     ] as ViewStyle[]}
-                    onPress={handleLogin}
+                    onPress={handleRegister}
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <ActivityIndicator color="#F7ECE1" />
                     ) : (
-                      <AnimatedText style={styles.loginButtonText}>Entrar</AnimatedText>
+                      <AnimatedText style={styles.registerButtonText}>Criar Conta</AnimatedText>
                     )}
                   </Pressable>
 
-                <Text style={styles.version}>Version 1.0</Text>
+              <AnimatedText delay={1000} style={styles.version}>
+                Version 1.0
+              </AnimatedText>
             </View>
           </Container>
         </Animated.ScrollView>
@@ -257,7 +299,7 @@ const styles = StyleSheet.create<Styles>({
     fontFamily: 'SpaceMono',
     textAlign: 'center',
   },
-  registerLink: {
+  loginLink: {
     color: '#9747FF',
     fontSize: 16,
     fontFamily: 'SpaceMono',
@@ -267,19 +309,19 @@ const styles = StyleSheet.create<Styles>({
   disabledLink: {
     opacity: 0.5,
   },
-  loginButton: {
+  registerButton: {
     backgroundColor: '#9747FF',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  loginButtonPressed: {
+  registerButtonPressed: {
     opacity: 0.8,
   },
-  loginButtonDisabled: {
+  registerButtonDisabled: {
     opacity: 0.5,
   },
-  loginButtonText: {
+  registerButtonText: {
     color: '#F7ECE1',
     fontSize: 16,
     fontFamily: 'SpaceMono',
