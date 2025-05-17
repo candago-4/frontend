@@ -3,7 +3,7 @@ import { Container } from '@/components/ui/Container';
 import { TabBarIcon } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface Device {
   id: string;
@@ -49,29 +49,6 @@ export default function HomeScreen() {
     console.log('Export pressed');
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      "Logout Confirmation",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Yes, Logout",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error) {
-              Alert.alert("Error", "Failed to logout. Please try again.");
-            }
-          }
-        }
-      ]
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -137,15 +114,7 @@ export default function HomeScreen() {
             <Text style={styles.exportText}>Export</Text>
           </Pressable>
           
-          <Pressable
-            style={({ pressed }) => [
-              styles.logoutButton,
-              pressed && styles.logoutButtonPressed
-            ]}
-            onPress={handleLogout}
-          >
-            <Text style={styles.logoutText}>Logout</Text>
-          </Pressable>
+
           
           <Text style={styles.version}>Version 1.0</Text>
         </View>

@@ -8,8 +8,8 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 // Example coordinates for São Paulo
 const INITIAL_LOCATION = {
-  latitude: -23.5505,
-  longitude: -46.6333,
+  latitude: -23.29495040178083,
+  longitude: -45.96673651375307, 
 };
 
 // Dark map style for native maps

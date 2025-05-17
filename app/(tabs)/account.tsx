@@ -2,7 +2,8 @@ import { Container } from '@/components/ui/Container';
 import { TabBarIcon } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import * as Clipboard from 'expo-clipboard';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function AccountScreen() {
   const { user, signOut, isLoading } = useAuth();
@@ -11,12 +12,29 @@ export default function AccountScreen() {
     await Clipboard.setStringAsync(text);
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Failed to logout:', error);
-    }
+  const handleLogout = () => {
+    if (isLoading) return;
+
+    Alert.alert(
+      "Logout Confirmation",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Yes, Logout",
+          style: "destructive",
+          onPress: () => {
+            signOut().catch((error) => {
+              console.error('Logout error:', error);
+              Alert.alert("Error", "Failed to logout. Please try again.");
+            });
+          }
+        }
+      ]
+    );
   };
 
   const renderField = (label: string, value: string, isMasked: boolean = false) => (
@@ -39,17 +57,21 @@ export default function AccountScreen() {
     </View>
   );
 
-  if (!user) {
-    return null;
-  }
-
   return (
     <View style={styles.container}>
       <Container style={styles.content}>
-        {renderField('Nome', user.name)}
-        {renderField('Email', user.email)}
-        {renderField('Senha', 'your-password-here', true)}
-        {renderField('Organização', user.organization)}
+        {user ? (
+          <>
+            {renderField('Nome', user.name)}
+            {renderField('Email', user.email)}
+            {renderField('Senha', 'your-password-here', true)}
+            {renderField('Organização', user.organization)}
+          </>
+        ) : (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#9747FF" />
+          </View>
+        )}
         
         <View style={styles.footer}>
           <Pressable
@@ -83,6 +105,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     gap: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   field: {
     gap: 8,

@@ -1,64 +1,98 @@
 import { router } from 'expo-router';
-import { createContext, ReactNode, useContext, useState } from 'react';
+import { createContext, ReactNode, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  organization: string;
+  role: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isInitialized: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-// Mock users database
-const mockUsers: (User & { password: string })[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    password: '123456',
-    organization: 'candago'
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    password: '123456',
-    organization: 'candago'
-  }
-];
+const API_URL = 'http://192.168.0.227:3001'; // Your local IP address
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Check for existing token on startup
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          // Validate token and get user data
+          const response = await fetch(`${API_URL}/validate-token`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.user);
+            router.replace('/(tabs)/home');
+          } else {
+            // If token is invalid, remove it
+            await AsyncStorage.removeItem('token');
+          }
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        await AsyncStorage.removeItem('token');
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    initializeAuth();
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Find user in mock database
-      const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-      
-      if (!foundUser) {
-        throw new Error('Invalid email or password');
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mail: email,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to login');
       }
+
+      // Store the token
+      await AsyncStorage.setItem('token', data.token);
       
-      // Remove password from user object before setting in state
-      const { password: _, ...userWithoutPassword } = foundUser;
+      // Set user data (excluding password)
+      const { password: _, ...userWithoutPassword } = data.user;
       setUser(userWithoutPassword);
       
-      router.replace('/home');
+      router.replace('/(tabs)/home');
     } catch (error) {
+      console.error('Login error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -68,32 +102,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (name: string, email: string, password: string) => {
     try {
       setIsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if email already exists
-      if (mockUsers.some(u => u.email === email)) {
-        throw new Error('Email already registered');
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          mail: email,
+          password,
+          role: 'user',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to register');
       }
-      
-      // Create new user
-      const newUser: User & { password: string } = {
-        id: (mockUsers.length + 1).toString(),
-        name,
-        email,
-        password,
-        organization: 'candago'
-      };
-      
-      // Add to mock database
-      mockUsers.push(newUser);
-      
-      // Remove password from user object before setting in state
-      const { password: _, ...userWithoutPassword } = newUser;
-      setUser(userWithoutPassword);
-      
-      router.replace('/(tabs)/(home)');
+
+      // After successful registration, automatically sign in
+      await signIn(email, password);
     } catch (error) {
+      console.error('Registration error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -103,20 +135,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Clear the stored token
+      await AsyncStorage.removeItem('token');
+      
+      // Clear user data
       setUser(null);
+      
+      // Navigate to login
       router.replace('/');
     } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Don't render children until auth is initialized
+  if (!isInitialized) {
+    return null;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, isInitialized, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
