@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
 import { Container } from '@/components/ui/Container';
 import { TabBarIcon } from '@/components/ui/IconSymbol';
 import { WebMap } from '@/components/WebMap';
 import { useDevices } from '@/contexts/DeviceContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { dashboardService } from '@/services/dashboardService';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -47,14 +47,18 @@ export default function MapScreen() {
         try {
           const metrics = await dashboardService.getMetrics(device.id);
           if (metrics.latestPosition) {
-            locations.push({
+            const location = {
               id: device.id,
               name: device.name,
               latitude: metrics.latestPosition.latitude,
               longitude: metrics.latestPosition.longitude,
               speed: metrics.mediaVelocidade,
               lastUpdate: metrics.latestPosition.datetime
-            });
+            };
+            locations.push(location);
+            console.log(`Device ${device.name} location updated:`, location);
+          } else {
+            console.log(`No latest position for device ${device.name}`);
           }
         } catch (err) {
           console.error(`Error fetching location for device ${device.id}:`, err);
@@ -62,6 +66,7 @@ export default function MapScreen() {
         }
       }
       
+      console.log('All device locations updated:', locations);
       setDeviceLocations(locations);
     } catch (err) {
       setMetricsError(err instanceof Error ? err.message : 'Failed to fetch device locations');
