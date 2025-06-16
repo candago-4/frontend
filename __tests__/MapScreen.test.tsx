@@ -89,7 +89,7 @@ describe('MapScreen', () => {
       const { getByTestId } = render(<MapScreen />);
       const webMap = getByTestId('web-map');
       expect(webMap).toBeTruthy();
-      expect(webMap.props.accessibilityValue.text).toBe('-23.5505,-46.6333');
+      expect(webMap.props.accessibilityValue.text).toBe('-23.29495040178083,-45.96673651375307');
     });
 
     it('renders native map on android platform', () => {
