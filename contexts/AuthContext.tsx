@@ -1,6 +1,7 @@
-import { router } from 'expo-router';
-import { createContext, ReactNode, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { API_URL } from '@/constants/config';
 
 interface User {
   id: string;
@@ -19,8 +20,6 @@ export type AuthContextType = {
   signOut: () => Promise<void>;
 };
 
-const API_URL = 'http://192.168.0.227:3001'; 
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -34,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
+        console.log('Token found:', token);
         if (token) {
           // Validate token and get user data
           const response = await fetch(`${API_URL}/validate-token`, {
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (response.ok) {
             const data = await response.json();
             setUser(data.user);
-            router.replace('/(tabs)/home');
+            router.replace('/home');
             setIsAuthenticated(true);
           } else {
             // If token is invalid, remove it
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { password: _, ...userWithoutPassword } = data.user;
       setUser(userWithoutPassword);
       
-      router.replace('/(tabs)/home');
+      router.replace('/home');
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Login error:', error);

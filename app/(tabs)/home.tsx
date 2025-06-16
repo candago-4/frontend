@@ -2,57 +2,136 @@
 import { Container } from '@/components/ui/Container';
 import { TabBarIcon } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-
-interface Device {
-  id: string;
-  name: string;
-}
-
-interface Metrics {
-  metrosPercorridos: number;
-  mediaMetrosDia: number;
-  mediaVelocidade: number;
-  downTimeProbability: number;
-}
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, Alert, ActivityIndicator } from 'react-native';
+import { dashboardService, DashboardMetrics } from '@/services/dashboardService';
+import { router } from 'expo-router';
+import { useDevices } from '@/contexts/DeviceContext';
 
 export default function HomeScreen() {
-  const { signOut } = useAuth();
+  const { user } = useAuth();
+  const { devices, isLoading, error, fetchDevices } = useDevices();
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
-  // Example data - replace with actual data
-  const devices: Device[] = [
-    { id: 'DEV-001', name: 'Device 1' },
-    { id: 'DEV-002', name: 'Device 2' },
-  ];
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
 
-  const metrics: Metrics = {
-    metrosPercorridos: 1234,
-    mediaMetrosDia: 123.4,
-    mediaVelocidade: 45.6,
-    downTimeProbability: 0.15,
+  useEffect(() => {
+    fetchDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (selectedDevice) {
+      fetchMetrics(selectedDevice);
+    } else {
+      setMetrics(null);
+    }
+  }, [selectedDevice]);
+
+  const fetchMetrics = async (deviceId: string) => {
+    try {
+      setIsLoadingMetrics(true);
+      const fetchedMetrics = await dashboardService.getMetrics(deviceId);
+      setMetrics(fetchedMetrics);
+    } catch (err) {
+      console.error('Error fetching metrics:', err);
+      Alert.alert('Error', 'Failed to fetch device metrics. Please try again later.');
+    } finally {
+      setIsLoadingMetrics(false);
+    }
   };
 
   const renderMetricCard = (label: string, value: number | string, isRed?: boolean) => (
     <View style={styles.metricCard}>
       <Text style={[styles.metricValue, isRed && styles.redValue]}>
-        Value
+        {value}
       </Text>
       <Text style={styles.metricLabel}>{label}</Text>
     </View>
   );
 
   const handleExport = () => {
-    // Implement export logic here
-    console.log('Export pressed');
+    if (!selectedDevice || !metrics) {
+      Alert.alert('Error', 'Please select a device first');
+      return;
+    }
+    // TODO: Implement export logic
+    console.log('Export pressed for device:', selectedDevice);
   };
+
+  const handleAddDevice = () => {
+    // Use modal or navigation as needed
+    Alert.alert('Add Device', 'Use the device modal or list screen to add a device.');
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Container style={styles.content}>
+          <Text style={styles.title}>Loading...</Text>
+          <ActivityIndicator size="large" color="#9747FF" />
+        </Container>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Container style={styles.content}>
+          <Text style={styles.title}>Error</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable 
+            style={styles.retryButton}
+            onPress={fetchDevices}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </Container>
+      </View>
+    );
+  }
+
+  if (devices.length === 0) {
+    // Show popup when there are no devices
+    Alert.alert(
+      "Welcome to LynchArea!",
+      "You don't have any devices yet. Would you like to add your first device?",
+      [
+        {
+          text: "Not Now",
+          style: "cancel"
+        },
+        {
+          text: "Add Device",
+          onPress: handleAddDevice
+        }
+      ]
+    );
+
+    return (
+      <View style={styles.container}>
+        <Container style={styles.content}>
+          <Text style={styles.title}>Welcome to Lynch Area</Text>
+          <Text style={styles.noDevicesText}>
+            Add your first device to start tracking metrics and monitoring your equipment.
+          </Text>
+          <Pressable 
+            style={styles.addDeviceButton}
+            onPress={handleAddDevice}
+          >
+            <Text style={styles.addDeviceButtonText}>Add Your First Device</Text>
+          </Pressable>
+        </Container>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Container style={styles.content}>
-        <Text style={styles.title}>[org_name] Dashboard</Text>
+        <Text style={styles.title}>Welcome, {user?.name}</Text>
         
         <View style={styles.dropdownContainer}>
           <Pressable 
@@ -62,7 +141,7 @@ export default function HomeScreen() {
             <Text style={styles.dropdownText}>
               {selectedDevice 
                 ? `${devices.find(d => d.id === selectedDevice)?.name} || ${selectedDevice}`
-                : '[Device_name || Id]'
+                : 'Select a device'
               }
             </Text>
             <TabBarIcon 
@@ -92,23 +171,35 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <View style={styles.metricsContainer}>
-          {renderMetricCard('Metros Percorridos', metrics.metrosPercorridos)}
-          {renderMetricCard('Media de Metros/Dia', metrics.mediaMetrosDia)}
-          {renderMetricCard('Media de Velocidade', metrics.mediaVelocidade)}
-          {renderMetricCard('Provabilidade de Down Time', 
-            `${(metrics.downTimeProbability * 100).toFixed(1)}%`, 
-            true
-          )}
-        </View>
+        {isLoadingMetrics ? (
+          <View style={styles.metricsContainer}>
+            <ActivityIndicator size="large" color="#9747FF" />
+          </View>
+        ) : metrics ? (
+          <View style={styles.metricsContainer}>
+            {renderMetricCard('Metros Percorridos', metrics.metrosPercorridos)}
+            {renderMetricCard('Media de Metros/Dia', metrics.mediaMetrosDia)}
+            {renderMetricCard('Media de Velocidade', metrics.mediaVelocidade)}
+            {renderMetricCard('Provabilidade de Down Time', 
+              `${(metrics.downTimeProbability * 100).toFixed(1)}%`, 
+              true
+            )}
+          </View>
+        ) : (
+          <View style={styles.metricsContainer}>
+            <Text style={styles.noMetricsText}>No metrics available for this device</Text>
+          </View>
+        )}
 
         <View style={styles.footer}>
           <Pressable
             style={({ pressed }) => [
               styles.exportButton,
-              pressed && styles.exportButtonPressed
+              pressed && styles.exportButtonPressed,
+              (!selectedDevice || !metrics) && styles.exportButtonDisabled
             ]}
             onPress={handleExport}
+            disabled={!selectedDevice || !metrics}
           >
             <Text style={styles.exportText}>Export</Text>
           </Pressable>
@@ -241,5 +332,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'SpaceMono',
     opacity: 0.7,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 16,
+    fontFamily: 'SpaceMono',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  retryButton: {
+    backgroundColor: '#9747FF',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    color: '#F7ECE1',
+    fontSize: 16,
+    fontFamily: 'SpaceMono',
+    textAlign: 'center',
+  },
+  noDevicesText: {
+    color: '#F7ECE1',
+    fontSize: 16,
+    fontFamily: 'SpaceMono',
+    textAlign: 'center',
+    opacity: 0.8,
+    marginTop: 16,
+  },
+  noMetricsText: {
+    color: '#F7ECE1',
+    fontSize: 16,
+    fontFamily: 'SpaceMono',
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  exportButtonDisabled: {
+    opacity: 0.5,
+  },
+  addDeviceButton: {
+    backgroundColor: '#9747FF',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  addDeviceButtonText: {
+    color: '#F7ECE1',
+    fontSize: 16,
+    fontFamily: 'SpaceMono',
+    fontWeight: 'bold',
   },
 });
