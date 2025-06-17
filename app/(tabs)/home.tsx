@@ -2,19 +2,27 @@
 import { Container } from '@/components/ui/Container';
 import { TabBarIcon } from '@/components/ui/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, Alert, ActivityIndicator } from 'react-native';
-import { dashboardService, DashboardMetrics } from '@/services/dashboardService';
-import { router } from 'expo-router';
 import { useDevices } from '@/contexts/DeviceContext';
+import { DashboardMetrics, dashboardService } from '@/services/dashboardService';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isInitialized } = useAuth();
   const { devices, isLoading, error, fetchDevices } = useDevices();
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
+
+
+
+  // Debug info
+  console.log('Home Screen - Auth State:', { 
+    isAuthenticated, 
+    isInitialized, 
+    user: user?.name || 'No user' 
+  });
 
   useEffect(() => {
     fetchDevices();
@@ -94,22 +102,6 @@ export default function HomeScreen() {
   }
 
   if (devices.length === 0) {
-    // Show popup when there are no devices
-    Alert.alert(
-      "Welcome to LynchArea!",
-      "You don't have any devices yet. Would you like to add your first device?",
-      [
-        {
-          text: "Not Now",
-          style: "cancel"
-        },
-        {
-          text: "Add Device",
-          onPress: handleAddDevice
-        }
-      ]
-    );
-
     return (
       <View style={styles.container}>
         <Container style={styles.content}>

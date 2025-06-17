@@ -1,4 +1,5 @@
 import { API_URL } from '@/constants/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Device {
   id: string;
@@ -8,7 +9,7 @@ export interface Device {
 
 export const deviceService = {
   async getDevices(user_id: string | number): Promise<Device[]> {
-    const token = localStorage.getItem('token');
+    const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -24,7 +25,7 @@ export const deviceService = {
   },
 
   async createDevice(user_id: string | number, name: string): Promise<void> {
-    const token = localStorage.getItem('token');
+    const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -40,7 +41,7 @@ export const deviceService = {
   },
 
   async updateDevice(id: string, name: string, user_id: string | number): Promise<void> {
-    const token = localStorage.getItem('token');
+    const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -58,7 +59,7 @@ export const deviceService = {
   },
 
   async deleteDevice(id: string): Promise<void> {
-    const token = localStorage.getItem('token');
+    const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token found');
     }

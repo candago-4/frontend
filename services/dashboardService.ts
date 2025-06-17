@@ -1,4 +1,5 @@
 import { API_URL } from '@/constants/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface DashboardMetrics {
   metrosPercorridos: number;
@@ -14,7 +15,7 @@ export interface DashboardMetrics {
 
 export const dashboardService = {
   async getMetrics(deviceId: string): Promise<DashboardMetrics> {
-    const token = localStorage.getItem('token');
+    const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token found');
     }

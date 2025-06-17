@@ -1,4 +1,5 @@
 import { API_URL } from '@/constants/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface Metric {
   id: string;
@@ -11,7 +12,7 @@ export interface Metric {
 
 export const metricsService = {
   async getMetrics(deviceId: string): Promise<Metric[]> {
-    const token = localStorage.getItem('token');
+    const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -21,7 +22,6 @@ export const metricsService = {
         'Authorization': `Bearer ${token}`,
       },
     });
-
     if (!response.ok) {
       if (response.status === 404) {
         return []; // Return empty array if no data found

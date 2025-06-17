@@ -1,20 +1,14 @@
+// 1. IMPORTAÇÕES ADICIONAIS
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import MapView from 'react-native-maps'; // Importe o tipo MapView
+
 import { Container } from '@/components/ui/Container';
 import { TabBarIcon } from '@/components/ui/IconSymbol';
-import { WebMap } from '@/components/WebMap';
 import { useDevices } from '@/contexts/DeviceContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { dashboardService } from '@/services/dashboardService';
-import React, { useCallback, useEffect, useState } from 'react';
-
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { MapComponent } from '@/components/MapComponent';
 
-// Default coordinates for São Paulo (will be used as fallback)
-const DEFAULT_LOCATION = {
-  latitude: -23.29495040178083,
-  longitude: -45.96673651375307, 
-};
-
-// Refresh interval in milliseconds (30 seconds)
 const REFRESH_INTERVAL = 30000;
 
 interface DeviceLocation {
@@ -27,7 +21,6 @@ interface DeviceLocation {
 }
 
 export default function MapScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { devices, isLoading, error, fetchDevices } = useDevices();
@@ -35,14 +28,15 @@ export default function MapScreen() {
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [metricsError, setMetricsError] = useState<string | null>(null);
 
-  // Fetch locations for all devices using dashboard metrics
+  // 2. CRIAR A REF PARA O MAPA
+  const mapRef = useRef<MapView>(null);
+
   const fetchAllDeviceLocations = useCallback(async () => {
+    // ...esta função continua exatamente igual
     setIsLoadingMetrics(true);
     setMetricsError(null);
     try {
       const locations: DeviceLocation[] = [];
-      
-      // Fetch location for each device using dashboard service
       for (const device of devices) {
         try {
           const metrics = await dashboardService.getMetrics(device.id);
@@ -56,17 +50,11 @@ export default function MapScreen() {
               lastUpdate: metrics.latestPosition.datetime
             };
             locations.push(location);
-            console.log(`Device ${device.name} location updated:`, location);
-          } else {
-            console.log(`No latest position for device ${device.name}`);
           }
         } catch (err) {
           console.error(`Error fetching location for device ${device.id}:`, err);
-          // Continue with other devices even if one fails
         }
       }
-      
-      console.log('All device locations updated:', locations);
       setDeviceLocations(locations);
     } catch (err) {
       setMetricsError(err instanceof Error ? err.message : 'Failed to fetch device locations');
@@ -75,33 +63,51 @@ export default function MapScreen() {
     }
   }, [devices]);
 
-  // Initial devices fetch
   useEffect(() => {
     fetchDevices();
   }, [fetchDevices]);
 
-  // Fetch locations when devices change
   useEffect(() => {
     if (devices.length > 0) {
       fetchAllDeviceLocations();
     }
   }, [devices, fetchAllDeviceLocations]);
 
-  // Set up periodic refresh
   useEffect(() => {
     if (devices.length === 0) return;
-
     const refreshInterval = setInterval(() => {
       fetchAllDeviceLocations();
     }, REFRESH_INTERVAL);
-
     return () => clearInterval(refreshInterval);
   }, [devices, fetchAllDeviceLocations]);
 
-  const handleDeviceSelect = (deviceId: string) => {
+  // 3. ATUALIZAR A FUNÇÃO PARA USAR A REF
+  const handleDeviceSelect = useCallback((deviceId: string) => {
     setSelectedDevice(deviceId);
     setIsDropdownOpen(false);
-  };
+
+    const device = deviceLocations.find(d => d.id === deviceId);
+
+    if (device && mapRef.current) {
+      const newRegion = {
+        latitude: device.latitude,
+        longitude: device.longitude,
+        latitudeDelta: 0.04, // Um pouco mais de zoom
+        longitudeDelta: 0.02,
+      };
+      
+      // Comando para mover o mapa suavemente
+      mapRef.current.animateToRegion(newRegion, 1000); // 1000ms de animação
+    }
+  }, [deviceLocations]); // Adicionamos a dependência
+
+  // Efeito para centralizar no primeiro dispositivo ao carregar
+  useEffect(() => {
+    if (deviceLocations.length > 0 && !selectedDevice) {
+      handleDeviceSelect(deviceLocations[0].id);
+    }
+  }, [deviceLocations, selectedDevice, handleDeviceSelect]);
+
 
   if (isLoading) {
     return (
@@ -125,38 +131,38 @@ export default function MapScreen() {
         <Text style={styles.title}>Mapa</Text>
         
         <View style={styles.dropdownContainer}>
-          <Pressable 
-            style={styles.dropdown}
-            onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            <Text style={styles.dropdownText}>
-              {selectedDevice 
-                ? `${devices.find(d => d.id === selectedDevice)?.name || selectedDevice}`
-                : 'Selecione um dispositivo'
-              }
-            </Text>
-            <TabBarIcon 
-              name={isDropdownOpen ? "arrow-drop-up" : "arrow-drop-down"} 
-              color="#9747FF" 
-              size={24} 
-            />
-          </Pressable>
+           <Pressable 
+             style={styles.dropdown}
+             onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+           >
+             <Text style={styles.dropdownText}>
+               {selectedDevice 
+                 ? `${devices.find(d => d.id === selectedDevice)?.name || selectedDevice}`
+                 : 'Selecione um dispositivo'
+               }
+             </Text>
+             <TabBarIcon 
+               name={isDropdownOpen ? "arrow-drop-up" : "arrow-drop-down"} 
+               color="#9747FF" 
+               size={24} 
+             />
+           </Pressable>
 
-          {isDropdownOpen && (
-            <View style={styles.dropdownMenu}>
-              {devices.map((device) => (
-                <Pressable
-                  key={device.id}
-                  style={styles.dropdownItem}
-                  onPress={() => handleDeviceSelect(device.id)}
-                >
-                  <Text style={styles.dropdownItemText}>
-                    {device.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
+           {isDropdownOpen && (
+             <View style={styles.dropdownMenu}>
+               {devices.map((device) => (
+                 <Pressable
+                   key={device.id}
+                   style={styles.dropdownItem}
+                   onPress={() => handleDeviceSelect(device.id)}
+                 >
+                   <Text style={styles.dropdownItemText}>
+                     {device.name}
+                   </Text>
+                 </Pressable>
+               ))}
+             </View>
+           )}
         </View>
 
         {isLoadingMetrics ? (
@@ -169,7 +175,9 @@ export default function MapScreen() {
           </View>
         ) : (
           <View style={styles.mapWrapper}>
-            <WebMap 
+            {/* 4. PASSAR A REF PARA O COMPONENTE DO MAPA */}
+            <MapComponent 
+              ref={mapRef}
               devices={deviceLocations}
               selectedDeviceId={selectedDevice}
             />
@@ -181,6 +189,7 @@ export default function MapScreen() {
                   
                   return (
                     <>
+                      {/* ... o restante do seu JSX não muda ... */}
                       <View style={styles.deviceInfoRow}>
                         <Text style={styles.deviceInfoLabel}>Device:</Text>
                         <Text style={styles.deviceInfoValue}>{device.name}</Text>
@@ -215,6 +224,7 @@ export default function MapScreen() {
   );
 }
 
+// ... seus styles não mudam
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -300,21 +310,6 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     textAlign: 'center',
   },
-  lastUpdateContainer: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  lastUpdateText: {
-    color: '#F7ECE1',
-    fontSize: 12,
-    fontFamily: 'SpaceMono',
-  },
   deviceInfoContainer: {
     position: 'absolute',
     top: 16,
@@ -342,4 +337,4 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     fontWeight: 'bold',
   },
-}); 
+});

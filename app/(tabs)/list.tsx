@@ -21,6 +21,9 @@ export default function ListScreen() {
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isWelcomeModalVisible, setIsWelcomeModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
+  const [deviceToEdit, setDeviceToEdit] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<DeviceFormData>({ name: '' });
   const [isLoadingDelete, setIsLoadingDelete] = useState(false);
@@ -65,6 +68,7 @@ export default function ListScreen() {
 
   const openCreateModal = () => {
     setIsEditing(false);
+    setDeviceToEdit(null);
     setFormData({ name: '' });
     setIsModalVisible(true);
     setIsWelcomeModalVisible(false); // Close welcome modal if open
@@ -72,20 +76,22 @@ export default function ListScreen() {
 
   const openEditModal = (device: any) => {
     setIsEditing(true);
+    setDeviceToEdit(device.id);
     setFormData({ name: device.name });
     setIsModalVisible(true);
   };
 
   const handleSubmit = async () => {
     try {
-      if (isEditing && selectedDevice) {
-        await updateDevice(selectedDevice, formData.name);
+      if (isEditing && deviceToEdit) {
+        await updateDevice(deviceToEdit, formData.name);
         Alert.alert('Success', 'Device updated successfully');
       } else {
         await addDevice(formData.name);
         Alert.alert('Success', 'Device created successfully');
       }
       setIsModalVisible(false);
+      setDeviceToEdit(null);
       fetchDevices(); // Refresh the list
     } catch (err) {
       Alert.alert(
@@ -96,35 +102,36 @@ export default function ListScreen() {
   };
 
   const handleDelete = async (deviceId: string) => {
-    Alert.alert(
-      'Delete Device',
-      'Are you sure you want to delete this device?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsLoadingDelete(true);
-              await deleteDevice(deviceId);
-              if (selectedDevice === deviceId) {
-                setSelectedDevice(null);
-              }
-              fetchDevices(); // Refresh the list
-            } catch (err) {
-              console.log('Delete error:', err);
-              Alert.alert(
-                'Error',
-                err instanceof Error ? err.message : 'Failed to delete device'
-              );
-            } finally {
-              setIsLoadingDelete(false);
-            }
-          },
-        },
-      ]
-    );
+    setDeviceToDelete(deviceId);
+    setIsDeleteModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deviceToDelete) return;
+    
+    try {
+      setIsLoadingDelete(true);
+      await deleteDevice(deviceToDelete);
+      if (selectedDevice === deviceToDelete) {
+        setSelectedDevice(null);
+      }
+      fetchDevices(); // Refresh the list
+      setIsDeleteModalVisible(false);
+      setDeviceToDelete(null);
+    } catch (err) {
+      console.log('Delete error:', err);
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to delete device'
+      );
+    } finally {
+      setIsLoadingDelete(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteModalVisible(false);
+    setDeviceToDelete(null);
   };
 
   const renderMetrics = () => {
@@ -356,6 +363,41 @@ export default function ListScreen() {
                   onPress={openCreateModal}
                 >
                   <Text style={styles.modalButtonText}>Add Your First Device</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          visible={isDeleteModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={cancelDelete}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Delete Device</Text>
+              <Text style={styles.welcomeText}>
+                Are you sure you want to delete this device? This action cannot be undone.
+              </Text>
+              
+              <View style={styles.modalActions}>
+                <Pressable
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={cancelDelete}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalButton, styles.deleteConfirmButton]}
+                  onPress={confirmDelete}
+                  disabled={isLoadingDelete}
+                >
+                  <Text style={styles.modalButtonText}>
+                    {isLoadingDelete ? 'Deleting...' : 'Delete'}
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -630,5 +672,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
+  },
+  deleteConfirmButton: {
+    backgroundColor: '#FF6B6B',
   },
 }); 

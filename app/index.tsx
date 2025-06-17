@@ -1,25 +1,25 @@
-
-import { Container } from '@/components/ui/Container';
 import { AnimatedText } from '@/components/ui/AnimatedText';
+import { Container } from '@/components/ui/Container';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'expo-router';
-import { useState } from 'react';
-import { 
-  ActivityIndicator, 
-  Image, 
-  Pressable, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  View, 
-  Platform,
-  ViewStyle,
-  TextStyle,
-  ImageStyle,
-  DimensionValue
+import { API_URL } from '@/constants/config';
+import { Link, router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    DimensionValue,
+    Image,
+    ImageStyle,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    TextStyle,
+    View,
+    ViewStyle
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { Layout } from 'react-native-reanimated';
 
 type InputStyle = TextStyle & ViewStyle;
 
@@ -49,11 +49,48 @@ type Styles = {
   version: TextStyle;
   swipeIndicator: ViewStyle;
   swipeIndicatorText: TextStyle;
+  debugText: TextStyle;
 };
 
 const getWebHeight = (): DimensionValue => '100%';
 
-export default function LoginScreen() {
+export default function IndexScreen() {
+  const { isAuthenticated, isInitialized } = useAuth();
+
+  // Redirect based on authentication status
+  useEffect(() => {
+    console.log('Index screen - Auth state:', { isAuthenticated, isInitialized });
+    if (isInitialized) {
+      if (isAuthenticated) {
+        console.log('User is authenticated, redirecting to home');
+        router.replace('/home');
+      } else {
+        console.log('User is not authenticated, showing login screen');
+      }
+      // If not authenticated, stay on this screen (login)
+    }
+  }, [isAuthenticated, isInitialized]);
+
+  // Show loading while auth is initializing
+  if (!isInitialized) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color="#9747FF" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // If authenticated, don't render login screen (will redirect)
+  if (isAuthenticated) {
+    return null;
+  }
+
+  return <LoginScreen />;
+}
+
+function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -166,6 +203,9 @@ export default function LoginScreen() {
                   </Pressable>
 
                 <Text style={styles.version}>Version 1.0</Text>
+                
+                {/* Debug info - remove in production */}
+                <Text style={styles.debugText}>API: {API_URL}</Text>
             </View>
           </Container>
         </Animated.ScrollView>
@@ -301,5 +341,12 @@ const styles = StyleSheet.create<Styles>({
     fontSize: 14,
     fontFamily: 'SpaceMono',
     opacity: 0.7,
+  },
+  debugText: {
+    color: '#F7ECE1',
+    fontSize: 14,
+    fontFamily: 'SpaceMono',
+    opacity: 0.7,
+    textAlign: 'center',
   },
 }); 
