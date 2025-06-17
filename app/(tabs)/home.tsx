@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function HomeScreen() {
-  const { user, isAuthenticated, isInitialized } = useAuth();
+  const { user, isAuthenticated, isInitialized   } = useAuth();
   const { devices, isLoading, error, fetchDevices } = useDevices();
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);

@@ -13,14 +13,30 @@ export interface DashboardMetrics {
   };
 }
 
+export interface DateFilter {
+  startDate?: string;
+  endDate?: string;
+}
+
 export const dashboardService = {
-  async getMetrics(deviceId: string): Promise<DashboardMetrics> {
+  async getMetrics(deviceId: string, dateFilter?: DateFilter): Promise<DashboardMetrics> {
     const token = await AsyncStorage.getItem('token');
     if (!token) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_URL}/api/deviceStats?deviceId=${deviceId}`, {
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('deviceId', deviceId);
+    
+    if (dateFilter?.startDate) {
+      params.append('startDate', dateFilter.startDate);
+    }
+    if (dateFilter?.endDate) {
+      params.append('endDate', dateFilter.endDate);
+    }
+
+    const response = await fetch(`${API_URL}/api/deviceStats?${params.toString()}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },

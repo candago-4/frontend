@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 // IMPORTANT: This is the WiFi IP address that mobile devices can reach
 // Make sure this matches your machine's WiFi IP address
-const WIFI_IP = '192.168.1.109';
+const WIFI_IP = '192.168.1.101';
 const BACKEND_PORT = '3000';
 
 // API URL configuration - Force the correct IP
@@ -27,7 +27,7 @@ console.log('========================');
 
 // Note: Make sure to:
 // 1. Your mobile device is on the same WiFi network as your development machine
-// 2. The backend is accessible at http://192.168.1.109:3000
+// 2. The backend is accessible at http://192.168.1.101:3000
 // 3. No firewall is blocking port 3000
 // 4. If the IP changes, update the WIFI_IP constant above
 
